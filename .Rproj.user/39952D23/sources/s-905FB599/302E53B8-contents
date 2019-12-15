@@ -1,0 +1,228 @@
+---
+title: "Project 2 Bioinformatics"
+author: "Vivian Huynh"
+date: "11/24/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE,fig.align="center",warning=FALSE,message=FALSE,fig.width=8, fig.height=5, linewidth=60)
+options(tibble.width = 100,width = 100)
+library(tidyverse)
+```
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(readr)
+#install.packages("dplyr")
+library(dplyr)
+#install.packages("ggplot2")
+library(ggplot2)
+battles_GOT <- read_csv("battles GOT.csv")
+```
+
+## The dataset that I have chosen covers the major battles in game of thrones and includes information about the battle number, the defenders, attackers, attacker outcome, attacker and defender size, deaths, captures, and the type of battle. 
+
+
+1. Run a MANOVA test on numeric variables
+# H0: For attacker size and defender size means, attacker outcomes of winning and losing are equal 
+# HA: For attacker and defender size means, attacker outcome of winning or losing is not equal. 
+```{r pressure, echo=FALSE}
+man1 <- manova(cbind(attacker_size,defender_size)~attacker_outcome, data=battles_GOT)
+summary(man1)
+summary.aov(man1)
+
+battles_GOT%>%group_by(attacker_outcome)%>%summarize(mean(attacker_size), mean(defender_size))
+
+pairwise.t.test(battles_GOT$attacker_size, battles_GOT$attacker_outcome,p.adj="none")
+
+pairwise.t.test(battles_GOT$defender_size, battles_GOT$attacker_outcome,p.adj="none")
+
+```
+# the p-value for the MANOVA test is 3.97e-05 which means it is significant, which also means that I reject the null hypothesis. There is a significantt difference of attacker and defender size means to the outcome of the attacker winning or losing. 
+
+
+
+2. Randomization test 
+# H0: attacker size and battle type have no significant differences on each other
+# HA: attacker size and battle type do have significant differences 
+```{r}
+rand_dist <-vector()
+for(i in 1:5000){
+Battle <- data.frame(Size=sample(battles_GOT$attacker_size), battle_type=battles_GOT$battle_type)
+
+
+rand_dist[i] <- mean(Battle[Battle$battle_type=="siege",]$Size)-mean(Battle[Battle$battle_type=="ambush",]$Size)}
+
+mean(rand_dist>0.23347)*2
+```
+#randomization test between attacker size and battle type. The result of this test was 1.0576
+
+3. Linear regression model 
+```{r}
+fit <- lm(attacker_size~battle_type + major_death + attacker_outcome + battle_type*major_death + battle_type*attacker_outcome + major_death*attacker_outcome, data= battles_GOT)
+summary(fit)
+
+ggplot(battles_GOT, aes(x=attacker_size, y=defender_size,group=attacker_outcome))+geom_point(aes(color=attacker_outcome))+ theme(legend.position=c(.9,.19))+xlab("Attacker size") + ylab("Defender size")
+
+# linearity, normality, and homoskedasticity 
+
+resids<-fit$residuals 
+fitvals<-fit$fitted.values 
+
+ggplot()+geom_point(aes(fitvals,resids))+geom_hline(yintercept=0, color='red')
+
+ggplot()+geom_histogram(aes(resids), bins=20)
+
+# The data seems to be normal and linear. 
+#install.packages("sandwich") 
+library(sandwich)
+#install.packages("lmtest")
+library(lmtest)
+coeftest(fit)[,1:2]
+
+coeftest(fit, vcov=vcovHC(fit))[,1:2]
+
+```
+# The coefficient estimates show that there is a strong interaction between battle type and pitched battle, siege battles and a major death. The data seems to be normal and shows homoskedasticity. No significant changes before and after robust SEs. 
+
+4. Rerun same regression model with interactiono but compute bootstrapped standard errors. 
+```{r}
+
+```
+5. Logistic regression 
+```{r}
+battles_GOT2 <-battles_GOT %>% mutate(attacker_outcome=ifelse(attacker_outcome=="win", 1,0))
+
+fit3<-glm(attacker_outcome~attacker_size + defender_size, data=battles_GOT2,family=binomial(link="logit"))
+
+coeftest(fit3)
+summary(fit3)
+
+probs <- predict(fit3,type="response")
+class_diag<-function(probs,truth){
+
+Tab <-table(factor(probs>.5, levels=c("FALSE", "TRUE")), truth)
+acc=sum(diag(Tab))/sum(Tab)
+sens=Tab[2,2]/colSums(Tab)[2]
+spec=Tab[1,1]/colSums(Tab)[1]
+ppv=Tab[2,2]/rowSums(Tab)[2]
+
+if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE) 
+
+truth <-as.numeric(truth)-1
+
+Ord <-order(probs,decreasing=TRUE)
+probs <- probs[Ord]; truth <-truth[Ord]
+
+
+TPR =cumsum(truth)/max(1,sum(truth))
+FPR = cumsum(!truth)/max(1,sum(!truth))
+
+
+dup <- c(probs[-1]>=probs[-length(probs)], FALSE)
+
+TPR <-c(0, TPR[!dup],1); FPR <-c(0,FPR[!dup],1)
+
+n <-length(TPR)
+
+auc<-sum(((TPR[-1]+ TPR[-n])/2) * (FPR[-1]-FPR[-n]))
+
+
+data.frame(acc,sens,spec, ppv, auc)
+}
+
+class_diag(probs, battles_GOT2$attacker_outcome)
+
+
+battles_GOT2$logit <-predict(fit3)
+ggplot(battles_GOT2, aes(logit, fill=attacker_outcome))+geom_density(alpha=.3)+ geom_vline(xintercept=0, lty=2)
+
+# ROC plot 
+library(plotROC)
+ROCplot <-ggplot(battles_GOT2) + geom_roc(aes(d=attacker_outcome, m=probs), n.cuts=0)
+
+ROCplot
+
+calc_auc(ROCplot)
+
+
+# perform a 10-fold CV
+set.seed(1234)
+k=5
+Data1 <- battles_GOT2[sample(nrow(battles_GOT2)),]
+folds <- cut(seq(1:nrow(battles_GOT2)), breaks=k, labels=F)
+diags <- NULL
+for(i in 1:k){
+
+train<-Data1[folds!=i,]
+test <- Data1[folds==i,]
+truth<-test$attacker_outcome
+
+#fit4<-glm(attacker_outcome~attacker_size + defender_size, data=train, family="binomial")
+#Probs <- predict(fit4, newdata= test, type="response")
+#diags <-rbind(diags, class_diag(Probs, truth))
+}
+
+#apply(diags, 2, mean)
+```
+#From the confusion matrix, the accuracy, sensitivity, specificity, and recall were: acc is 0.973, sens=1, spec=0.8, ppv=0.97, auc=0.933. When performing a 10-fold CV, the averaged out values were: acc=0.91, sens=0.94, spec=0.66, ppv=0.958, auc=0.833. Auc was a fairly high value, which means it is easy to predict the attacker outcome based on attacker size and defender size. 
+
+
+6. choose one variable to predict and run a LASSO regression. 
+```{r}
+#Y <- as.matrix(battles_GOT2$attacker_outcome)
+#X <- battles_GOT2 %>% select(8:13) %>% mutate_all(scale) %>% as.matrix
+
+#cv<-cv.glmnet(X, Y)
+#lasso1 <-glmnet(X,Y, lambda=cv$lambda.1se)
+#coef(lasso1)
+
+
+
+#set.seed(1234)
+#k=5
+#Dat1 <- battles_GOT2[sample(nrow(battles_GOT2)),]
+#Folds <- cut(seq(1:nrow(battles_GOT2)), breaks=k, labels=F)
+
+#diags<- NULL
+#for(i in 1:k){
+#train <-Dat1[folds!=i,]
+#test <-Dat1[folds==i,]
+#truth <-test$attacker_outcome
+
+#fit5 <- glm(attacker_outcome~attacker_size, data=train, family="binomial")
+
+#Prob_1 <- predict(fit5, newdata= test, type="response")
+#diags <-rbind(diags, class_diag(Prob_1, truth))
+#}
+
+#diags%>%summarize_all(mean)
+```
+
+# the acc is 0.95, sens=1, spec=0.66, ppv=0.958, auc=0.809. Therefore, after running a LASSO regression, we see that the accuracy of determining attacker size for attacker outcome is 0.958. This is a better fit than the logistic regression model. 
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

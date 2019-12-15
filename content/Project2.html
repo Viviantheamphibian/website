@@ -1,0 +1,334 @@
+---
+title: "Project 2 Bioinformatics"
+author: "Vivian Huynh"
+date: "11/24/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+
+<p>```</p>
+<div id="r-markdown" class="section level2">
+<h2>R Markdown</h2>
+<p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <a href="http://rmarkdown.rstudio.com" class="uri">http://rmarkdown.rstudio.com</a>.</p>
+<p>When you click the <strong>Knit</strong> button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</p>
+<pre class="r"><code>library(readr)
+#install.packages(&quot;dplyr&quot;)
+library(dplyr)
+#install.packages(&quot;ggplot2&quot;)
+library(ggplot2)
+battles_GOT &lt;- read_csv(&quot;battles GOT.csv&quot;)</code></pre>
+</div>
+<div id="the-dataset-that-i-have-chosen-covers-the-major-battles-in-game-of-thrones-and-includes-information-about-the-battle-number-the-defenders-attackers-attacker-outcome-attacker-and-defender-size-deaths-captures-and-the-type-of-battle." class="section level2">
+<h2>The dataset that I have chosen covers the major battles in game of thrones and includes information about the battle number, the defenders, attackers, attacker outcome, attacker and defender size, deaths, captures, and the type of battle.</h2>
+<ol style="list-style-type: decimal">
+<li>Run a MANOVA test on numeric variables
+# H0: For attacker size and defender size means, attacker outcomes of winning and losing are equal
+# HA: For attacker and defender size means, attacker outcome of winning or losing is not equal.</li>
+</ol>
+<pre><code>## Df Pillai approx F num Df den Df Pr(&gt;F)
+## attacker_outcome 1 0.43952 13.723 2 35 3.979e-05 ***
+## Residuals 36
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre><code>## Response attacker_size :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## attacker_outcome 1 3590511997 3590511997 19.888
+7.727e-05 ***
+## Residuals 36 6499177319 180532703
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response defender_size :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## attacker_outcome 1 133133522 133133522 5.4691 0.02503 *
+## Residuals 36 876338886 24342747
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre><code>## # A tibble: 2 x 3
+## attacker_outcome `mean(attacker_size)`
+`mean(defender_size)`
+## &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 loss 32400 8498
+## 2 win 3644.  2961.</code></pre>
+<pre><code>##
+## Pairwise comparisons using t tests with pooled SD
+##
+## data: battles_GOT$attacker_size and
+battles_GOT$attacker_outcome
+##
+## loss
+## win 7.7e-05
+##
+## P value adjustment method: none</code></pre>
+<pre><code>##
+## Pairwise comparisons using t tests with pooled SD
+##
+## data: battles_GOT$defender_size and
+battles_GOT$attacker_outcome
+##
+## loss
+## win 0.025
+##
+## P value adjustment method: none</code></pre>
+</div>
+<div id="the-p-value-for-the-manova-test-is-3.97e-05-which-means-it-is-significant-which-also-means-that-i-reject-the-null-hypothesis.-there-is-a-significantt-difference-of-attacker-and-defender-size-means-to-the-outcome-of-the-attacker-winning-or-losing." class="section level1">
+<h1>the p-value for the MANOVA test is 3.97e-05 which means it is significant, which also means that I reject the null hypothesis. There is a significantt difference of attacker and defender size means to the outcome of the attacker winning or losing.</h1>
+<ol start="2" style="list-style-type: decimal">
+<li>Randomization test
+# H0: attacker size and battle type have no significant differences on each other
+# HA: attacker size and battle type do have significant differences</li>
+</ol>
+<pre class="r"><code>rand_dist &lt;-vector()
+for(i in 1:5000){
+Battle &lt;- data.frame(Size=sample(battles_GOT$attacker_size), battle_type=battles_GOT$battle_type)
+
+
+rand_dist[i] &lt;- mean(Battle[Battle$battle_type==&quot;siege&quot;,]$Size)-mean(Battle[Battle$battle_type==&quot;ambush&quot;,]$Size)}
+
+mean(rand_dist&gt;0.23347)*2</code></pre>
+<pre><code>## [1] 1.0592</code></pre>
+<p>#randomization test between attacker size and battle type. The result of this test was 1.0576</p>
+<ol start="3" style="list-style-type: decimal">
+<li>Linear regression model</li>
+</ol>
+<pre class="r"><code>fit &lt;- lm(attacker_size~battle_type + major_death + attacker_outcome + battle_type*major_death + battle_type*attacker_outcome + major_death*attacker_outcome, data= battles_GOT)
+summary(fit)</code></pre>
+<pre><code>##
+## Call:
+## lm(formula = attacker_size ~ battle_type + major_death +
+attacker_outcome +
+## battle_type * major_death + battle_type *
+attacker_outcome +
+## major_death * attacker_outcome, data = battles_GOT)
+##
+## Residuals:
+## Min 1Q Median 3Q Max
+## -11000.0 -2393.6 -24.7 1476.0 10484.5
+##
+## Coefficients: (3 not defined because of singularities)
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 107260 9342 11.482 4.19e-12 ***
+## battle_typepitched battle -87260 7983 -10.930 1.30e-11
+***
+## battle_typerazing -1716 4201 -0.408 0.686
+## battle_typesiege -1667 2915 -0.572 0.572
+## major_death -7744 7476 -1.036 0.309
+## attacker_outcomewin -104044 9021 -11.533 3.78e-12 ***
+## battle_typepitched battle:major_death 1744 4951 0.352
+0.727
+## battle_typerazing:major_death NA NA NA NA
+## battle_typesiege:major_death 2151 4918 0.437 0.665
+## battle_typepitched battle:attacker_outcomewin 88770 7410
+11.980 1.55e-12 ***
+## battle_typerazing:attacker_outcomewin NA NA NA NA
+## battle_typesiege:attacker_outcomewin NA NA NA NA
+## major_death:attacker_outcomewin 9044 6789 1.332 0.194
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Residual standard error: 4851 on 28 degrees of freedom
+## Multiple R-squared: 0.9347, Adjusted R-squared: 0.9137
+## F-statistic: 44.53 on 9 and 28 DF, p-value: 3.044e-14</code></pre>
+<pre class="r"><code>ggplot(battles_GOT, aes(x=attacker_size, y=defender_size,group=attacker_outcome))+geom_point(aes(color=attacker_outcome))+ theme(legend.position=c(.9,.19))+xlab(&quot;Attacker size&quot;) + ylab(&quot;Defender size&quot;)</code></pre>
+<p><img src="/Project2_files/figure-html/unnamed-chunk-3-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># linearity, normality, and homoskedasticity 
+
+resids&lt;-fit$residuals 
+fitvals&lt;-fit$fitted.values 
+
+ggplot()+geom_point(aes(fitvals,resids))+geom_hline(yintercept=0, color=&#39;red&#39;)</code></pre>
+<p><img src="/Project2_files/figure-html/unnamed-chunk-3-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot()+geom_histogram(aes(resids), bins=20)</code></pre>
+<p><img src="/Project2_files/figure-html/unnamed-chunk-3-3.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># The data seems to be normal and linear. 
+#install.packages(&quot;sandwich&quot;) 
+library(sandwich)
+#install.packages(&quot;lmtest&quot;)
+library(lmtest)
+coeftest(fit)[,1:2]</code></pre>
+<pre><code>## Estimate Std. Error
+## (Intercept) 107259.625 9341.661
+## battle_typepitched battle -87259.625 7983.361
+## battle_typerazing -1716.000 4201.122
+## battle_typesiege -1666.556 2915.111
+## major_death -7744.125 7475.952
+## attacker_outcomewin -104043.625 9021.279
+## battle_typepitched battle:major_death 1744.125 4951.070
+## battle_typerazing:major_death NA NA
+## battle_typesiege:major_death 2151.056 4917.952
+## battle_typepitched battle:attacker_outcomewin 88770.000
+7410.084
+## battle_typerazing:attacker_outcomewin NA NA
+## battle_typesiege:attacker_outcomewin NA NA
+## major_death:attacker_outcomewin 9043.625 6788.566</code></pre>
+<pre class="r"><code>coeftest(fit, vcov=vcovHC(fit))[,1:2]</code></pre>
+<pre><code>## Estimate Std. Error
+## (Intercept) 107259.625 NaN
+## battle_typepitched battle -87259.625 NaN
+## battle_typerazing -1716.000 NaN
+## battle_typesiege -1666.556 NaN
+## major_death -7744.125 NaN
+## attacker_outcomewin -104043.625 NaN
+## battle_typepitched battle:major_death 1744.125 NaN
+## battle_typesiege:major_death 2151.056 NaN
+## battle_typepitched battle:attacker_outcomewin 88770.000
+NaN
+## major_death:attacker_outcomewin 9043.625 NaN</code></pre>
+</div>
+<div id="the-coefficient-estimates-show-that-there-is-a-strong-interaction-between-battle-type-and-pitched-battle-siege-battles-and-a-major-death.-the-data-seems-to-be-normal-and-shows-homoskedasticity.-no-significant-changes-before-and-after-robust-ses." class="section level1">
+<h1>The coefficient estimates show that there is a strong interaction between battle type and pitched battle, siege battles and a major death. The data seems to be normal and shows homoskedasticity. No significant changes before and after robust SEs.</h1>
+<ol start="4" style="list-style-type: decimal">
+<li><p>Rerun same regression model with interactiono but compute bootstrapped standard errors.</p></li>
+<li><p>Logistic regression</p></li>
+</ol>
+<pre class="r"><code>battles_GOT2 &lt;-battles_GOT %&gt;% mutate(attacker_outcome=ifelse(attacker_outcome==&quot;win&quot;, 1,0))
+
+fit3&lt;-glm(attacker_outcome~attacker_size + defender_size, data=battles_GOT2,family=binomial(link=&quot;logit&quot;))
+
+coeftest(fit3)</code></pre>
+<pre><code>##
+## z test of coefficients:
+##
+## Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept) 5.05601173 1.68973509 2.9922 0.00277 **
+## attacker_size -0.00024693 0.00010953 -2.2545 0.02417 *
+## defender_size -0.00010938 0.00011920 -0.9176 0.35883
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>summary(fit3)</code></pre>
+<pre><code>##
+## Call:
+## glm(formula = attacker_outcome ~ attacker_size +
+defender_size,
+## family = binomial(link = &quot;logit&quot;), data = battles_GOT2)
+##
+## Deviance Residuals:
+## Min 1Q Median 3Q Max
+## -2.7922 0.1171 0.1485 0.2385 1.0699
+##
+## Coefficients:
+## Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept) 5.0560117 1.6897351 2.992 0.00277 **
+## attacker_size -0.0002469 0.0001095 -2.254 0.02417 *
+## defender_size -0.0001094 0.0001192 -0.918 0.35883
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## (Dispersion parameter for binomial family taken to be 1)
+##
+## Null deviance: 29.593 on 37 degrees of freedom
+## Residual deviance: 13.384 on 35 degrees of freedom
+## AIC: 19.384
+##
+## Number of Fisher Scoring iterations: 7</code></pre>
+<pre class="r"><code>probs &lt;- predict(fit3,type=&quot;response&quot;)
+class_diag&lt;-function(probs,truth){
+
+Tab &lt;-table(factor(probs&gt;.5, levels=c(&quot;FALSE&quot;, &quot;TRUE&quot;)), truth)
+acc=sum(diag(Tab))/sum(Tab)
+sens=Tab[2,2]/colSums(Tab)[2]
+spec=Tab[1,1]/colSums(Tab)[1]
+ppv=Tab[2,2]/rowSums(Tab)[2]
+
+if(is.numeric(truth)==FALSE &amp; is.logical(truth)==FALSE) 
+
+truth &lt;-as.numeric(truth)-1
+
+Ord &lt;-order(probs,decreasing=TRUE)
+probs &lt;- probs[Ord]; truth &lt;-truth[Ord]
+
+
+TPR =cumsum(truth)/max(1,sum(truth))
+FPR = cumsum(!truth)/max(1,sum(!truth))
+
+
+dup &lt;- c(probs[-1]&gt;=probs[-length(probs)], FALSE)
+
+TPR &lt;-c(0, TPR[!dup],1); FPR &lt;-c(0,FPR[!dup],1)
+
+n &lt;-length(TPR)
+
+auc&lt;-sum(((TPR[-1]+ TPR[-n])/2) * (FPR[-1]-FPR[-n]))
+
+
+data.frame(acc,sens,spec, ppv, auc)
+}
+
+class_diag(probs, battles_GOT2$attacker_outcome)</code></pre>
+<pre><code>##         acc sens spec       ppv       auc
+## 1 0.9736842    1  0.8 0.9705882 0.9333333</code></pre>
+<pre class="r"><code>battles_GOT2$logit &lt;-predict(fit3)
+ggplot(battles_GOT2, aes(logit, fill=attacker_outcome))+geom_density(alpha=.3)+ geom_vline(xintercept=0, lty=2)</code></pre>
+<p><img src="/Project2_files/figure-html/unnamed-chunk-5-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ROC plot 
+library(plotROC)
+ROCplot &lt;-ggplot(battles_GOT2) + geom_roc(aes(d=attacker_outcome, m=probs), n.cuts=0)
+
+ROCplot</code></pre>
+<p><img src="/Project2_files/figure-html/unnamed-chunk-5-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>calc_auc(ROCplot)</code></pre>
+<pre><code>##   PANEL group       AUC
+## 1     1    -1 0.9333333</code></pre>
+<pre class="r"><code># perform a 10-fold CV
+set.seed(1234)
+k=5
+Data1 &lt;- battles_GOT2[sample(nrow(battles_GOT2)),]
+folds &lt;- cut(seq(1:nrow(battles_GOT2)), breaks=k, labels=F)
+diags &lt;- NULL
+for(i in 1:k){
+
+train&lt;-Data1[folds!=i,]
+test &lt;- Data1[folds==i,]
+truth&lt;-test$attacker_outcome
+
+#fit4&lt;-glm(attacker_outcome~attacker_size + defender_size, data=train, family=&quot;binomial&quot;)
+#Probs &lt;- predict(fit4, newdata= test, type=&quot;response&quot;)
+#diags &lt;-rbind(diags, class_diag(Probs, truth))
+}
+
+#apply(diags, 2, mean)</code></pre>
+<p>#From the confusion matrix, the accuracy, sensitivity, specificity, and recall were: acc is 0.973, sens=1, spec=0.8, ppv=0.97, auc=0.933. When performing a 10-fold CV, the averaged out values were: acc=0.91, sens=0.94, spec=0.66, ppv=0.958, auc=0.833. Auc was a fairly high value, which means it is easy to predict the attacker outcome based on attacker size and defender size.</p>
+<ol start="6" style="list-style-type: decimal">
+<li>choose one variable to predict and run a LASSO regression.</li>
+</ol>
+<pre class="r"><code>#Y &lt;- as.matrix(battles_GOT2$attacker_outcome)
+#X &lt;- battles_GOT2 %&gt;% select(8:13) %&gt;% mutate_all(scale) %&gt;% as.matrix
+
+#cv&lt;-cv.glmnet(X, Y)
+#lasso1 &lt;-glmnet(X,Y, lambda=cv$lambda.1se)
+#coef(lasso1)
+
+
+
+#set.seed(1234)
+#k=5
+#Dat1 &lt;- battles_GOT2[sample(nrow(battles_GOT2)),]
+#Folds &lt;- cut(seq(1:nrow(battles_GOT2)), breaks=k, labels=F)
+
+#diags&lt;- NULL
+#for(i in 1:k){
+#train &lt;-Dat1[folds!=i,]
+#test &lt;-Dat1[folds==i,]
+#truth &lt;-test$attacker_outcome
+
+#fit5 &lt;- glm(attacker_outcome~attacker_size, data=train, family=&quot;binomial&quot;)
+
+#Prob_1 &lt;- predict(fit5, newdata= test, type=&quot;response&quot;)
+#diags &lt;-rbind(diags, class_diag(Prob_1, truth))
+#}
+
+#diags%&gt;%summarize_all(mean)</code></pre>
+</div>
+<div id="the-acc-is-0.95-sens1-spec0.66-ppv0.958-auc0.809.-therefore-after-running-a-lasso-regression-we-see-that-the-accuracy-of-determining-attacker-size-for-attacker-outcome-is-0.958.-this-is-a-better-fit-than-the-logistic-regression-model." class="section level1">
+<h1>the acc is 0.95, sens=1, spec=0.66, ppv=0.958, auc=0.809. Therefore, after running a LASSO regression, we see that the accuracy of determining attacker size for attacker outcome is 0.958. This is a better fit than the logistic regression model.</h1>
+<p>Note that the <code>echo = FALSE</code> parameter was added to the code chunk to prevent printing of the R code that generated the plot.</p>
+</div>

@@ -1,0 +1,139 @@
+
+
+
+<p>#install.packages(“rmarkdown”)
+#install.packages(‘vctrs’)
+#install.packages(‘tidyr’)
+library(tidyr)
+library(dplyr)
+#install.packages(“tidyverse”)
+#install.packages(“ggplot2”)
+library(ggplot2)
+library(tidyverse)</p>
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+</div>
+<div id="for-my-project-i-decided-to-analyze-datasets-of-new-york-schools-sat-and-ap-scores.-the-first-dataset-contains-sat-median-scores-for-the-different-sections-as-well-as-how-many-students-took-it-from-each-school." class="section level1">
+<h1>For my project, I decided to analyze datasets of New York School’s SAT and AP scores. The first dataset contains SAT median scores for the different sections as well as how many students took it from each school.</h1>
+</div>
+<div id="for-the-second-dataset-passing-ap-scores-were-counted-for-each-school-as-well-as-the-number-of-test-takers-and-total-exams-taken." class="section level1">
+<h1>For the second dataset, passing AP scores were counted for each school, as well as the number of test takers and total exams taken.</h1>
+</div>
+<div id="these-datasets-interested-me-because-i-wanted-to-see-if-there-were-correlations-with-sat-scores-and-ap-scores.-additionally-many-other-correlations-were-found-between-the-number-of-tests-taken-and-high-scores." class="section level1">
+<h1>These datasets interested me because I wanted to see if there were correlations with SAT scores and AP scores. Additionally, many other correlations were found between the number of tests taken and high scores.</h1>
+<p>SATScores &lt;- read.csv("SAT__College_Board__2010_School_Level_Results.csv“, header = TRUE)
+APScores &lt;- read.csv(”2010__AP__College_Board__School_Level_Results.csv", header = TRUE)</p>
+<p>#install.packages(“devtools”)
+#devtools::install_github(“tidyverse/tidyr”)</p>
+</div>
+<div id="tidying-the-datasets-allows-for-more-organized-data." class="section level1">
+<h1>Tidying the datasets allows for more organized data.</h1>
+<p>dty_AP &lt;- gather(APScores, key = “Metric”, value = “Number”, unlist(names(APScores))[3:5])
+dty_SAT &lt;- gather(SATScores, key = “Metric”, value = “Number”, unlist(names(SATScores))[3:6])</p>
+<p>names(dty_AP)[2] &lt;- “School”
+names(dty_SAT)[2] &lt;- “School”</p>
+</div>
+<div id="delete-school-off-of-one-of-the-datasets-so-that-when-the-two-datasets-are-joined-it-will-not-have-two-columns-for-school.-the-schools-are-joined-by-id-number-dbn." class="section level1">
+<h1>Delete School off of one of the datasets, so that when the two datasets are joined, it will not have two columns for school. The schools are joined by ID number, “DBN”.</h1>
+</div>
+<div id="dty_apschool---null" class="section level1">
+<h1>dty_AP$School &lt;- NULL</h1>
+</div>
+<div id="the-two-data-sets-were-joined-by-using-the-code-full_join.the-two-datasets-were-joined-by-the-common-factor-dbn-which-represents-a-specific-code-for-each-school-in-the-new-york-city-district." class="section level1">
+<h1>The two data sets were joined by using the code full_join.The two datasets were joined by the common factor, “DBN” which represents a specific code for each School in the New york City district.</h1>
+<p>library(dplyr)</p>
+<p>NY_APSAT &lt;- full_join(dty_AP, dty_SAT, by = “DBN”)</p>
+</div>
+<div id="the-na-were-removed-after-joining-the-two-datasets." class="section level1">
+<h1>The NA were removed after joining the two datasets.</h1>
+<p>NewYork_APSAT &lt;- NY_APSAT %&gt;% na.omit</p>
+</div>
+<div id="summary-statistics-using-all-6-core-dplyr-functions" class="section level1">
+<h1>Summary statistics using all 6 core dplyr functions</h1>
+</div>
+<div id="use-filter-to-filter-out-students-who-got-a-34-or-5-on-the-ap-exam-and-received-a-score-of-500-600-for-sat-scores." class="section level1">
+<h1>Use filter to filter out students who got a 3,4, or 5 on the AP exam and received a score of 500-600 for SAT Scores.</h1>
+</div>
+<div id="from-the-results-of-using-the-code-50-schools-consistently-received-a-mean-score-above-500-for-each-section-on-the-sat-as-well-as-showing-how-many-ap-exams-were-passed-at-the-schools." class="section level1">
+<h1>From the results of using the code, 50 schools consistently received a mean score above 500 for each section on the SAT as well as showing how many AP exams were passed at the schools.</h1>
+<p>NewYork_APSAT%&gt;%filter(Metric.x==“Number.of.Exams.with.scores.3.4.or.5”)%&gt;%filter(between(Number.y,500,600))</p>
+</div>
+<div id="use-select-to-reorder-variablescolumns.-the-following-code-orders-dbn-first-school-second-and-all-the-other-columns-afterwards." class="section level1">
+<h1>Use select() to reorder variables/columns. The following code orders DBN first, School second, and all the other columns afterwards.</h1>
+<p>NewYork_APSAT %&gt;% select(DBN, School, everything())</p>
+</div>
+<div id="use-arrange-to-sort-rows." class="section level1">
+<h1>Use arrange() to sort rows.</h1>
+</div>
+<div id="this-use-of-arrange-arranges-the-names-of-the-schools-from-descending-alphabetical-order." class="section level1">
+<h1>This use of arrange() arranges the Names of the schools from descending alphabetical order.</h1>
+<p>Final_APSAT %&gt;% arrange(desc(School))</p>
+</div>
+<div id="use-summarize-and-group_by-to-calculate-the-summary-statistics-and-to-designate-groups-of-data-of-this-dataset." class="section level1">
+<h1>Use summarize() and group_by() to calculate the summary statistics and to designate groups of data of this dataset.</h1>
+</div>
+<div id="the-following-code-calculates-the-218-rows-and-presents-the-school-as-well-as-the-mean-for-the-column-number.x-and-number.y" class="section level1">
+<h1>The following code calculates the 218 rows and presents the School as well as the mean for the column “Number.x” and “Number.y”</h1>
+<p>NewYork_APSAT %&gt;% group_by(School) %&gt;% summarize_if(is.numeric,mean,na.rm = T)</p>
+</div>
+<div id="use-mutate-to-create-a-new-column-of-the-total-average-sat-score.-the-columns-consisting-of-scores-for-each-section-on-the-sat-were-added-together-to-create-a-new-column." class="section level1">
+<h1>Use mutate() to create a new column of the total average SAT score. The columns consisting of scores for each section on the SAT were added together to create a new column.</h1>
+<p>Total_APSAT %&gt;% mutate(Critical.Reading.Mean + Mathematics.Mean + Writing.Mean) -&gt; Total_APSAT</p>
+<p>#Summary statistics for numeric variables</p>
+<p>mean(NewYork_APSAT<span class="math inline">\(Number.x) mean(NewYork_APSAT\)</span>Number.y)
+sd(NewYork_APSAT<span class="math inline">\(Number.x) sd(NewYork_APSAT\)</span>Number.y)
+var(NewYork_APSAT<span class="math inline">\(Number.x) var(NewYork_APSAT\)</span>Number.y)
+quantile(NewYork_APSAT<span class="math inline">\(Number.x) quantile(NewYork_APSAT\)</span>Number.y)
+min(NewYork_APSAT<span class="math inline">\(Number.x) min(NewYork_APSAT\)</span>Number.y)
+max(NewYork_APSAT<span class="math inline">\(Number.x) max(NewYork_APSAT\)</span>Number.y)
+n_distinct(NewYork_APSAT<span class="math inline">\(Number.x) n_distinct(NewYork_APSAT\)</span>Number.y)</p>
+</div>
+<div id="used-cor-to-see-the-correlation-between-sat-score-and-ap-score" class="section level1">
+<h1>Used cor to see the correlation between SAT score and AP score</h1>
+</div>
+<div id="this-code-calculates-the-correlation-between-the-numeric-variables-number.x-and-number.y-which-represent-sat-scores-and-act-passing-rates." class="section level1">
+<h1>This code calculates the correlation between the numeric variables, Number.x and Number.y which represent SAT scores and ACT passing rates.</h1>
+<p>NewYork_APSAT %&gt;% select_if(is.numeric) %&gt;% na.omit %&gt;% cor</p>
+</div>
+<div id="use-cor-to-see-the-correlation-between-the-number-of-times-the-students-took-the-test-and-students-who-reeive-a-345-on-the-ap-test." class="section level1">
+<h1>Use cor() to see the correlation between the number of times the students took the test and students who reeive a 3,4,5 on the AP test.</h1>
+</div>
+<div id="from-the-use-of-this-cor-i-was-able-to-see-that-there-was-a-strong-correlation-between-students-who-took-many-tests-were-also-scoring-34-or-5-on-the-ap-tests." class="section level1">
+<h1>From the use of this cor(), I was able to see that there was a strong correlation between students who took many tests were also scoring 3,4, or 5 on the AP tests.</h1>
+<p>x &lt;- Final_APSAT<span class="math inline">\(Total.Exams.Taken y &lt;- Final_APSAT\)</span>Number.of.Exams.with.scores.3.4.or.5
+cor(x,y)</p>
+</div>
+<div id="use-ggplot-to-visualize-the-dataset.-i-added-the-combined-sat-score-on-the-final_apsat-dataset." class="section level1">
+<h1>Use ggplot to visualize the dataset. I added the combined SAT score on the Final_APSAT dataset.</h1>
+<p>Final_APSAT %&gt;% mutate(Critical.Reading.Mean + Mathematics.Mean + Writing.Mean) -&gt; Final_APSAT</p>
+</div>
+<div id="create-the-first-plot-and-assign-it-as-a-variable-to-add-a-title-x-axis-and-y-axis" class="section level1">
+<h1>Create the first plot and assign it as a variable to add a title, x-axis, and y-axis</h1>
+<p>Plot1 &lt;- ggplot(data = Final_APSAT, aes(x = Critical.Reading.Mean + Mathematics.Mean + Writing.Mean, y = Number.of.Exams.with.scores.3.4.or.5)) + geom_point(size=2) + theme_minimal()</p>
+<p>Plot1 + ggtitle(“Correlation between passing AP scores to SAT scores”) + ylab(“Number of passing AP Exam scores”) +xlab(“Composite SAT score”)</p>
+</div>
+<div id="create-a-second-plot-to-visualize-the-relationship-between-number-of-tests-taken-and-passing-rates-for-ap-tests" class="section level1">
+<h1>Create a second plot to visualize the relationship between number of tests taken and passing rates for AP tests</h1>
+<p>ggplot(data = Final_APSAT, aes(x = Total.Exams.Taken, y = Number.of.Exams.with.scores.3.4.or.5)) +
+geom_point() + scale_x_continuous(trans=“log10”)+ scale_y_continuous(trans=“log10”) + theme(legend.position = “none”) +
+ggtitle(“Number of AP Exams taken and Passing rates”) +ylab(“Passing Scores”) +xlab(“Total Exams taken”)</p>
+<p>ggplot(data = Final_APSAT, aes(x = Total.Exams.Taken, y = Number.of.Exams.with.scores.3.4.or.5)) +
+geom_point() + scale_x_continuous(trans=“log10”)+ scale_y_continuous(trans=“log10”) + theme(legend.position = “none”) +
+ggtitle(“Number of AP Exams taken and Passing rates”) +ylab(“Passing Scores”) +xlab(“Total Exams taken”)</p>
+</div>
+<div id="peform-k-meanspam-clustering-or-pca-on-your-numeric-variables" class="section level1">
+<h1>Peform k-means/PAM clustering or PCA on your numeric variables</h1>
+<p>NewYork_APSAT%&gt;%pivot_wider(names_from = “Metric.y”,values_from = “Number.y”) -&gt; Total_APSAT
+Total_APSAT%&gt;%pivot_wider(names_from = “Metric.x”,values_from = “Number.x”)%&gt;%na.omit-&gt;Final_APSAT
+Final_APSAT%&gt;%select(-School,-DBN)%&gt;%cor
+# From the correlation code “cor”, there appears to be a correlation between students who score high in critical reading also score high in critical math.</p>
+</div>
+<div id="this-plot-for-pca-shows-the-relationship-between-pc1-and-pc2.-the-pc1-and-pc2-results-from-the-prcomp-resulted-in-the-values-2.432-and-1.2539" class="section level1">
+<h1>This plot for PCA shows the relationship between PC1 and PC2. The PC1 and PC2 results from the prcomp resulted in the values 2.432 and 1.2539</h1>
+<p>ggplot()+geom_point(aes(APSAT_pca<span class="math inline">\(x[,1],APSAT_pca\)</span>x[,2]))+xlab(“PC1”)+ylab(“PC2”)</p>
+</div>
+<div id="correlation-component-pc1-pc2" class="section level1">
+<h1>correlation component PC1, PC2</h1>
+<p>Final_APSAT%&gt;%select(-School, -DBN)%&gt;%scale%&gt;%prcomp() -&gt; APSAT_pca
+summary(APSAT_pca)</p>
+</div>

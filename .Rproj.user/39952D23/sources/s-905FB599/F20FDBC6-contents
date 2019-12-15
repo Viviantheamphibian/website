@@ -1,0 +1,175 @@
+---
+title: "Project1"
+author: "Vivian Huynh"
+date: "12/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{R}
+
+#install.packages("rmarkdown")
+#install.packages('vctrs')
+#install.packages('tidyr')
+library(tidyr)
+library(dplyr)
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+library(ggplot2)
+library(tidyverse)
+```
+
+## Introduction
+ For my project, I decided to analyze datasets of New York School's SAT and AP scores. The first dataset contains SAT median scores for the different sections as well as how many students took it from each school.
+ For the second dataset, passing AP scores were counted for each school, as well as the number of test takers and total exams taken.
+ These datasets interested me because I wanted to see if there were correlations with SAT scores and AP scores. Additionally, many other correlations were found between the number of tests taken and high scores. 
+```{R}
+SATScores <- read.csv("SAT__College_Board__2010_School_Level_Results.csv", header = TRUE)
+APScores <- read.csv("2010__AP__College_Board__School_Level_Results.csv", header = TRUE)
+
+#install.packages("devtools")
+#devtools::install_github("tidyverse/tidyr")
+```
+
+# Tidying the datasets allows for more organized data. 
+
+```{R}
+dty_AP <- gather(APScores, key = "Metric", value = "Number", unlist(names(APScores))[3:5])
+dty_SAT <- gather(SATScores, key = "Metric", value = "Number", unlist(names(SATScores))[3:6])
+
+names(dty_AP)[2] <- "School"
+names(dty_SAT)[2] <- "School"
+
+```
+# Delete School off of one of the datasets, so that when the two datasets are joined, it will not have two columns for school. The schools are joined by ID number, "DBN". 
+# dty_AP$School <- NULL 
+
+# The two data sets were joined by using the code full_join.The two datasets were joined by the common factor, "DBN" which represents a specific code for each School in the New york City district.
+
+```{R}
+#library(dplyr)
+
+NY_APSAT <- full_join(dty_AP, dty_SAT, by = "DBN")
+
+# The NA were removed after joining the two datasets. 
+NewYork_APSAT <- NY_APSAT %>% na.omit
+
+```
+# Summary statistics using all 6 core dplyr functions 
+
+# Use filter to filter out students who got a 3,4, or 5 on the AP exam and received a score of 500-600 for SAT Scores.
+# From the results of using the code, 50 schools consistently received a mean score above 500 for each section on the SAT as well as showing how many AP exams were passed at the schools. 
+
+```{R}
+NewYork_APSAT%>%filter(Metric.x=="Number.of.Exams.with.scores.3.4.or.5")%>%filter(between(Number.y,500,600))
+
+# Use select() to reorder variables/columns. The following code orders DBN first, School second, and all the other columns afterwards.  
+NewYork_APSAT %>% select(DBN, School, everything())
+
+# Use arrange() to sort rows.
+# This use of arrange() arranges the Names of the schools from descending alphabetical order. 
+Final_APSAT %>% arrange(desc(School))
+
+
+# Use summarize() and group_by() to calculate the summary statistics and to designate groups of data of this dataset.
+# The following code calculates the 218 rows and presents the School as well as the mean for the column "Number.x" and "Number.y"
+
+NewYork_APSAT %>% group_by(School) %>% summarize_if(is.numeric,mean,na.rm = T)
+
+# Use mutate() to create a new column of the total average SAT score. The columns consisting of scores for each section on the SAT were added together to create a new column. 
+
+Total_APSAT %>% mutate(Critical.Reading.Mean + Mathematics.Mean + Writing.Mean) -> Total_APSAT
+
+```
+
+#Summary statistics for numeric variables
+
+```{R}
+mean(NewYork_APSAT$Number.x)
+mean(NewYork_APSAT$Number.y)
+sd(NewYork_APSAT$Number.x)
+sd(NewYork_APSAT$Number.y)
+var(NewYork_APSAT$Number.x)
+var(NewYork_APSAT$Number.y)
+quantile(NewYork_APSAT$Number.x)
+quantile(NewYork_APSAT$Number.y)
+min(NewYork_APSAT$Number.x)
+min(NewYork_APSAT$Number.y)
+max(NewYork_APSAT$Number.x)
+max(NewYork_APSAT$Number.y)
+n_distinct(NewYork_APSAT$Number.x)
+n_distinct(NewYork_APSAT$Number.y)
+
+
+```
+# Used cor to see the correlation between SAT score and AP score
+# This code calculates the correlation between the numeric variables, Number.x and Number.y which represent SAT scores and ACT passing rates. 
+
+```{R}
+NewYork_APSAT %>% select_if(is.numeric) %>% na.omit %>% cor
+
+# Use cor() to see the correlation between the number of times the students took the test and students who reeive a 3,4,5 on the AP test.
+# From the use of this cor(), I was able to see that there was a strong correlation between students who took many tests were also scoring 3,4, or 5 on the AP tests.
+x <- Final_APSAT$Total.Exams.Taken
+y <- Final_APSAT$Number.of.Exams.with.scores.3.4.or.5
+cor(x,y)
+
+
+```
+# Use ggplot to visualize the dataset. I added the combined SAT score on the Final_APSAT dataset.
+
+```{R}
+Final_APSAT %>% mutate(Critical.Reading.Mean + Mathematics.Mean + Writing.Mean) -> Final_APSAT
+ 
+```
+# Create the first plot and assign it as a variable to add a title, x-axis, and y-axis
+
+```{R}
+Plot1 <- ggplot(data = Final_APSAT, aes(x = Critical.Reading.Mean + Mathematics.Mean + Writing.Mean, y = Number.of.Exams.with.scores.3.4.or.5)) +   geom_point(size=2) + theme_minimal()
+
+
+Plot1 + ggtitle("Correlation between passing AP scores to SAT scores") + ylab("Number of passing AP Exam scores") +xlab("Composite SAT score")
+
+```
+
+# Create a second plot to visualize the relationship between number of tests taken and passing rates for AP tests
+
+```{R}
+ggplot(data = Final_APSAT, aes(x = Total.Exams.Taken, y = Number.of.Exams.with.scores.3.4.or.5)) +
+  geom_point() + scale_x_continuous(trans="log10")+ scale_y_continuous(trans="log10") + theme(legend.position = "none") + 
+  ggtitle("Number of AP Exams taken and Passing rates") +ylab("Passing Scores") +xlab("Total Exams taken")
+
+
+ggplot(data = Final_APSAT, aes(x = Total.Exams.Taken, y = Number.of.Exams.with.scores.3.4.or.5)) +
+  geom_point() + scale_x_continuous(trans="log10")+ scale_y_continuous(trans="log10") + theme(legend.position = "none") + 
+  ggtitle("Number of AP Exams taken and Passing rates") +ylab("Passing Scores") +xlab("Total Exams taken") 
+
+```
+# Peform k-means/PAM clustering or PCA on your numeric variables
+```{R}
+NewYork_APSAT%>%pivot_wider(names_from = "Metric.y",values_from = "Number.y") -> Total_APSAT
+Total_APSAT%>%pivot_wider(names_from = "Metric.x",values_from = "Number.x")%>%na.omit->Final_APSAT
+Final_APSAT%>%select(-School,-DBN)%>%cor
+# From the correlation code "cor", there appears to be a correlation between students who score high in critical reading also score high in critical math.
+
+# This plot for PCA shows the relationship between PC1 and PC2. The PC1 and PC2 results from the prcomp resulted in the values 2.432 and 1.2539
+
+```
+
+```{R}
+ggplot()+geom_point(aes(APSAT_pca$x[,1],APSAT_pca$x[,2]))+xlab("PC1")+ylab("PC2")
+
+```
+
+# correlation component PC1, PC2 
+```{R}
+Final_APSAT%>%select(-School, -DBN)%>%scale%>%prcomp() -> APSAT_pca
+summary(APSAT_pca)
+
+
+```
